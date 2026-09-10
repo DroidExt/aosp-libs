@@ -12,6 +12,35 @@ separate copy in every application repository.
 
 JAR and AAR files are tracked with Git LFS.
 
+## Branches and API levels
+
+Choose the branch matching the Android version and API level of your target AOSP
+build:
+
+| Branch | Android version | API level |
+| --- | --- | --- |
+| `a15_r36` | Android 15 | 35 |
+| `b16_r4` | Android 16 | 36 |
+| `c17_r1` | Android 17 | 37 |
+
+`main` contains the shared guide and Git LFS configuration. Use a version branch
+for the framework JAR; the `r` suffix identifies the release revision, not the API
+level.
+
+For example, to select Android 16 in an existing app submodule:
+
+```sh
+git -C aosp-libs fetch origin
+git -C aosp-libs checkout b16_r4
+git -C aosp-libs lfs pull
+```
+
+Commit the updated submodule pointer in the consuming app repository. The Gradle
+dependency path stays the same across version branches.
+
+API mappings follow the [AOSP version reference](https://source.android.com/docs/setup/reference/build-numbers)
+and [Android 17 documentation](https://developer.android.com/about/versions/17/summary).
+
 ## Use in a Gradle project
 
 Install Git LFS, then add this repository as a submodule at your project root:
