@@ -8,6 +8,7 @@ separate copy in every application repository.
 
 | File | Purpose |
 | --- | --- |
+| `framework.gradle.kts` | Shared Gradle configuration for consuming the framework JAR |
 | `compile-only/framework.jar` | Android framework classes for compile-time use |
 
 JAR and AAR files are tracked with Git LFS.
@@ -23,9 +24,9 @@ build:
 | `b16_r4` | Android 16 | 36 |
 | `c17_r1` | Android 17 | 37 |
 
-`main` contains the shared guide and Git LFS configuration. Use a version branch
-for the framework JAR; the `r` suffix identifies the release revision, not the API
-level.
+`main` contains the shared Gradle script, guide, and Git LFS configuration. Use a
+version branch for the framework JAR; the `r` suffix identifies the release
+revision, not the API level.
 
 For example, to select Android 16 in an existing app submodule:
 
@@ -53,49 +54,28 @@ git submodule add git@gitme.com:OkieLe/aosp-libs.git aosp-libs
 `gitme.com` is an SSH alias for GitHub. Configure it locally, or use
 `git@github.com:OkieLe/aosp-libs.git` with your standard GitHub SSH setup.
 
-In the consuming module's `build.gradle.kts`, add the import at the top of the
-file and the remaining configuration after the `plugins` and `android` blocks:
+Select a version branch as described above, then apply the shared script in the
+consuming module's `build.gradle.kts` after applying the Android and Kotlin Android
+plugins:
 
 ```kotlin
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-// Relative overrides are resolved from the repository root.
-val platformFramework = rootProject.file(
-    providers.gradleProperty("platformFramework")
-        .getOrElse("aosp-libs/compile-only/framework.jar")
-)
-
-// Validate only when the consuming compile classpath is resolved.
-val platformFrameworkFiles = files(providers.provider {
-    check(platformFramework.isFile) {
-        "Missing platform framework JAR: $platformFramework. " +
-            "Initialize aosp-libs, select a version branch, and run Git LFS pull, " +
-            "or pass -PplatformFramework=/path/to/framework.jar."
-    }
-    platformFramework
-})
-
-// Platform classes must precede SDK stubs so Kotlin can see hidden members.
-// Preserve lazy task dependencies from the original classpath.
-afterEvaluate {
-    tasks.withType<KotlinCompile>().configureEach {
-        val originalLibraries = libraries.from.toList()
-        libraries.setFrom(platformFrameworkFiles, originalLibraries)
-    }
-}
-
-dependencies {
-    compileOnly(platformFrameworkFiles)
-}
+apply(from = rootProject.file("aosp-libs/framework.gradle.kts"))
 ```
 
-Use `compileOnly` so the framework JAR is not packaged into the app. The target
-Android system supplies these classes at runtime. For Kotlin compilation,
-`compileOnly` alone does not ensure platform classes take precedence over SDK
-stubs; the `KotlinCompile` configuration above prepends the JAR while retaining
-the original classpath's lazy task dependencies. The provider defers the missing
-file check until the classpath is resolved, so unrelated modules can build
-without the JAR.
+The script adds `aosp-libs/compile-only/framework.jar` as a `compileOnly`
+dependency, so the JAR is not packaged into the app. The target Android system
+supplies these classes at runtime. It also places the JAR before SDK stubs on
+Kotlin's compile classpath so hidden platform members resolve, while preserving
+the original classpath's lazy task dependencies. No separate `compileOnly`
+declaration or Kotlin task configuration is needed in the consuming module.
+
+Applied Kotlin scripts do not have Kotlin plugin types on their compilation
+classpath. The script resolves `KotlinCompile` through the applied Kotlin plugin
+and accesses its libraries through Gradle's dynamic API.
+
+The missing-file check is deferred until the consuming compile classpath is
+resolved, so unrelated modules can build without the JAR. The `aosp-libs`
+submodule must still be initialized so Gradle can load the script.
 
 To use a different local framework JAR:
 
