@@ -53,17 +53,59 @@ git submodule add git@gitme.com:OkieLe/aosp-libs.git aosp-libs
 `gitme.com` is an SSH alias for GitHub. Configure it locally, or use
 `git@github.com:OkieLe/aosp-libs.git` with your standard GitHub SSH setup.
 
-In the consuming module's `build.gradle.kts`:
+In the consuming module's `build.gradle.kts`, add the import at the top of the
+file and the remaining configuration after the `plugins` and `android` blocks:
 
 ```kotlin
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+// Relative overrides are resolved from the repository root.
+val platformFramework = rootProject.file(
+    providers.gradleProperty("platformFramework")
+        .getOrElse("aosp-libs/compile-only/framework.jar")
+)
+
+// Validate only when the consuming compile classpath is resolved.
+val platformFrameworkFiles = files(providers.provider {
+    check(platformFramework.isFile) {
+        "Missing platform framework JAR: $platformFramework. " +
+            "Initialize aosp-libs, select a version branch, and run Git LFS pull, " +
+            "or pass -PplatformFramework=/path/to/framework.jar."
+    }
+    platformFramework
+})
+
+// Platform classes must precede SDK stubs so Kotlin can see hidden members.
+// Preserve lazy task dependencies from the original classpath.
+afterEvaluate {
+    tasks.withType<KotlinCompile>().configureEach {
+        val originalLibraries = libraries.from.toList()
+        libraries.setFrom(platformFrameworkFiles, originalLibraries)
+    }
+}
+
 dependencies {
-    compileOnly(files(rootProject.file("aosp-libs/compile-only/framework.jar")))
+    compileOnly(platformFrameworkFiles)
 }
 ```
 
 Use `compileOnly` so the framework JAR is not packaged into the app. The target
-Android system supplies these classes at runtime; use libraries matching the
-AOSP version you target. Adding the JAR does not grant platform permissions.
+Android system supplies these classes at runtime. For Kotlin compilation,
+`compileOnly` alone does not ensure platform classes take precedence over SDK
+stubs; the `KotlinCompile` configuration above prepends the JAR while retaining
+the original classpath's lazy task dependencies. The provider defers the missing
+file check until the classpath is resolved, so unrelated modules can build
+without the JAR.
+
+To use a different local framework JAR:
+
+```sh
+./gradlew :app:assembleDebug -PplatformFramework=/path/to/framework.jar
+```
+
+Relative override paths are resolved from the repository root. Use a framework
+JAR matching the AOSP version you target. Adding the JAR does not grant platform
+permissions.
 
 For an existing checkout:
 
