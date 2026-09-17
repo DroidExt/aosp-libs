@@ -48,11 +48,11 @@ Install Git LFS, then add this repository as a submodule at your project root:
 
 ```sh
 git lfs install
-git submodule add git@gitme.com:OkieLe/aosp-libs.git aosp-libs
+git submodule add git@gitme.com:DroidExt/aosp-libs.git aosp-libs
 ```
 
 `gitme.com` is an SSH alias for GitHub. Configure it locally, or use
-`git@github.com:OkieLe/aosp-libs.git` with your standard GitHub SSH setup.
+`git@github.com:DroidExt/aosp-libs.git` with your standard GitHub SSH setup.
 
 Select a version branch as described above, then apply the shared script in the
 consuming module's `build.gradle.kts` after applying the Android and Kotlin Android
