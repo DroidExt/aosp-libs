@@ -18,10 +18,15 @@ val kotlinCompileType = kotlinPluginHost
     .javaClass.classLoader.loadClass("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
     .asSubclass(Task::class.java)
 
-// Relative overrides are resolved from the repository root.
+// Resolve the default JAR beside this script, regardless of the submodule path.
+val aospLibsDirectory = checkNotNull(buildscript.sourceFile) {
+    "Apply framework.gradle.kts from a local file."
+}.parentFile
+
+// Relative overrides are still resolved from the consuming repository root.
 val platformFramework = rootProject.file(
     providers.gradleProperty("platformFramework")
-        .getOrElse("aosp-libs/compile-only/framework.jar")
+        .getOrElse(aospLibsDirectory.resolve("compile-only/framework.jar").absolutePath)
 )
 
 // Validate only when the consuming compile classpath is resolved.

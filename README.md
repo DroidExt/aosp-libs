@@ -44,7 +44,8 @@ and [Android 17 documentation](https://developer.android.com/about/versions/17/s
 
 ## Use in a Gradle project
 
-Install Git LFS, then add this repository as a submodule at your project root:
+Install Git LFS, then add this repository as a submodule at your preferred path
+(`aosp-libs` at the project root is used in these examples):
 
 ```sh
 git lfs install
@@ -63,7 +64,17 @@ apply `org.jetbrains.kotlin.android` before this script as well:
 apply(from = rootProject.file("aosp-libs/framework.gradle.kts"))
 ```
 
-The script adds `aosp-libs/compile-only/framework.jar` as a `compileOnly`
+The script finds `compile-only/framework.jar` relative to its own directory, so
+the submodule can live anywhere. For example, if you add it at
+`platform/aosp-libs`, apply it with:
+
+```kotlin
+apply(from = rootProject.file("platform/aosp-libs/framework.gradle.kts"))
+```
+
+Use that same submodule path in the Git initialization, checkout, and LFS commands.
+
+The script adds the framework JAR as a `compileOnly`
 dependency, so the JAR is not packaged into the app. The target Android system
 supplies these classes at runtime. It also places the JAR before SDK stubs on
 Kotlin's compile classpath so hidden platform members resolve, while preserving
