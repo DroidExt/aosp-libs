@@ -55,8 +55,9 @@ git submodule add git@gitme.com:DroidExt/aosp-libs.git aosp-libs
 `git@github.com:DroidExt/aosp-libs.git` with your standard GitHub SSH setup.
 
 Select a version branch as described above, then apply the shared script in the
-consuming module's `build.gradle.kts` after applying the Android and Kotlin Android
-plugins:
+consuming module's `build.gradle.kts` after applying the Android plugin. AGP 9's
+built-in Kotlin is supported directly; when using standalone Kotlin Android,
+apply `org.jetbrains.kotlin.android` before this script as well:
 
 ```kotlin
 apply(from = rootProject.file("aosp-libs/framework.gradle.kts"))
@@ -70,8 +71,9 @@ the original classpath's lazy task dependencies. No separate `compileOnly`
 declaration or Kotlin task configuration is needed in the consuming module.
 
 Applied Kotlin scripts do not have Kotlin plugin types on their compilation
-classpath. The script resolves `KotlinCompile` through the applied Kotlin plugin
-and accesses its libraries through Gradle's dynamic API.
+classpath. The script resolves `KotlinCompile` through the standalone Kotlin
+plugin when applied, or the Android plugin for AGP 9's built-in Kotlin, and
+accesses its libraries through Gradle's dynamic API.
 
 The missing-file check is deferred until the consuming compile classpath is
 resolved, so unrelated modules can build without the JAR. The `aosp-libs`

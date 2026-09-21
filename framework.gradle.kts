@@ -2,12 +2,19 @@ import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.kotlin.dsl.withGroovyBuilder
 
-check(pluginManager.hasPlugin("org.jetbrains.kotlin.android")) {
-    "Apply org.jetbrains.kotlin.android before aosp-libs/framework.gradle.kts"
-}
+// AGP 9 provides Kotlin without applying org.jetbrains.kotlin.android. Applied
+// scripts cannot import Kotlin plugin types directly, so use the standalone
+// Kotlin plugin's classloader when present, or the Android plugin's otherwise.
+val kotlinPluginHost = listOf(
+    "org.jetbrains.kotlin.android",
+    "com.android.application",
+    "com.android.library",
+    "com.android.dynamic-feature",
+    "com.android.test",
+).firstNotNullOfOrNull { plugins.findPlugin(it) }
+    ?: error("Apply the Android plugin before aosp-libs/framework.gradle.kts")
 
-// Applied scripts cannot import Kotlin plugin types directly.
-val kotlinCompileType = plugins.getPlugin("org.jetbrains.kotlin.android")
+val kotlinCompileType = kotlinPluginHost
     .javaClass.classLoader.loadClass("org.jetbrains.kotlin.gradle.tasks.KotlinCompile")
     .asSubclass(Task::class.java)
 
